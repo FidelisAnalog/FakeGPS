@@ -50,6 +50,8 @@ void setup()
 
 	drd.stop();
 
+	digitalWrite(LED_BUILTIN, HIGH);
+
 	Serial.print("Waiting for WiFi");
 	while (WiFi.status() != WL_CONNECTED)
 	{
