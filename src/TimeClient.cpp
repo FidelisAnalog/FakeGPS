@@ -46,8 +46,10 @@ void TimeClient::AskCurrentEpoch()
 	int httpCode;
 	int offset = 0;
 
-	if (DEBUG)
-		Serial.print("Retrieving timezone offset: ");
+	if (DEBUG) {
+		Serial.println("Asking server for current epoch");
+		Serial.print("Timezone offset (s): ");
+	}
 
 	http.begin(wifiClient, geo_location_api);
 	httpCode = http.GET();
@@ -68,14 +70,14 @@ void TimeClient::AskCurrentEpoch()
 		if (error)
 		{
 			if (DEBUG)
-				Serial.println("scan timezone offset failed");
+				Serial.println("Scan timezone offset failed");
 			offset = 0;
 		}
 		else
 		{
 //			ntpClient.offset = offset;
 			ntpClient.update();
-			if (date_time = ntpClient.getEpochTime()) // get NTP-time
+			if ((date_time = ntpClient.getEpochTime())) // get NTP-time
 			{
 				date_time += offset + 1;
 				error_getTime = true;
@@ -106,7 +108,7 @@ unsigned long TimeClient::GetCurrentTime()
 	if (timeNow > timeToAsk || !error_getTime)
 	{ // Is it time to ask server for current time?
 		if (DEBUG)
-			Serial.println("Time to ask");
+			Serial.println("Time to ask server for current time");
 		timeToAsk = timeNow + askFrequency; // Don't ask again for a while
 		if (timeToRead == 0)
 		{ // If we have not asked...

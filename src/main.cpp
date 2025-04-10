@@ -74,12 +74,9 @@ void loop()
 	struct tm *tmtime;
 	unsigned long amicros, umicros = 0;
 
-	//askFrequency = 60 * 60 * 1000;
-
 	for (;;)
 	{
 		amicros = micros();
-		//askFrequency = 60 * 60 * 1000;
 		while (((netEpoch = TimeClient.GetCurrentTime()) == locEpoch) || (!netEpoch))
 		{
 			delay(100);
