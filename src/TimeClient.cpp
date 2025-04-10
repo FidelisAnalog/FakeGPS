@@ -1,10 +1,10 @@
 #include <WiFiClient.h>
 #include <ESP8266HTTPClient.h>
-#include "NTPClient.h"
+#include <NTPClient.h>
 #include <WiFiUdp.h>
 
 //=== NTP CLIENT ===
-#include "TimeClient.h"
+#include <TimeClient.h>
 
 #define DEBUG 1
 
@@ -108,7 +108,7 @@ unsigned long TimeClient::GetCurrentTime()
 	if (timeNow > timeToAsk || !error_getTime)
 	{ // Is it time to ask server for current time?
 		if (DEBUG)
-			Serial.println("Time to ask server for current time");
+			Serial.println("Time to ask server");
 		timeToAsk = timeNow + askFrequency; // Don't ask again for a while
 		if (timeToRead == 0)
 		{ // If we have not asked...

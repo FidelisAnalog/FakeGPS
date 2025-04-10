@@ -1,5 +1,5 @@
-#ifndef __TIMECLIENT_H__
-#define __TIMECLIENT_H__
+#ifndef TimeClient_H
+#define TimeClient_H
 /*
 
  WTA Client
@@ -24,20 +24,21 @@
 
 extern unsigned long askFrequency;
 
-class TimeClient {
-  public:
-    TimeClient();
-    void Setup(void);
-    unsigned long GetCurrentTime();
-    byte GetHours();
-    byte GetMinutes();
-    byte GetSeconds();
-    void PrintTime();
-    bool SaveConfig(void);
-    bool LoadConfig(void);
+class TimeClient 
+{
+public:
+  TimeClient();
+  void Setup(void);
+  unsigned long GetCurrentTime();
+  byte GetHours();
+  byte GetMinutes();
+  byte GetSeconds();
+  void PrintTime();
+  bool SaveConfig(void);
+  bool LoadConfig(void);
     
-  private:
-    void AskCurrentEpoch();
-    unsigned long ReadCurrentEpoch();
+private:
+  void AskCurrentEpoch();
+  unsigned long ReadCurrentEpoch();
  };
-#endif // __TIMECLIENT_H__
+#endif // TimeClient_H

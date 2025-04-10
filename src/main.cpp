@@ -1,6 +1,6 @@
 // Refactor v1
 #include <WiFiManager.h>          // https://github.com/tzapu/WiFiManager
-#include "TimeClient.h"			  // https://github.com/arduino-libraries/NTPClient
+#include <TimeClient.h>			  // https://github.com/arduino-libraries/NTPClient
 
 //== DOUBLE-RESET DETECTOR ==
 #include <DoubleResetDetector.h>
@@ -8,7 +8,7 @@
 #define DRD_ADDRESS 0 // RTC Memory Address for the DoubleResetDetector to use
 DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
 
-TimeClient TimeClient;
+TimeClient timeClient;
 WiFiManager wifiManager;
 time_t locEpoch = 0, netEpoch = 0;
 
@@ -62,9 +62,8 @@ void setup()
 	Serial.println(WiFi.localIP());
 
 	Serial1.begin(9600);
-
-	
 }
+
 
 void loop()
 {
@@ -77,7 +76,7 @@ void loop()
 	for (;;)
 	{
 		amicros = micros();
-		while (((netEpoch = TimeClient.GetCurrentTime()) == locEpoch) || (!netEpoch))
+		while (((netEpoch = timeClient.GetCurrentTime()) == locEpoch) || (!netEpoch))
 		{
 			delay(100);
 		}
