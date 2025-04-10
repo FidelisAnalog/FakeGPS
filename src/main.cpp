@@ -3,8 +3,8 @@
 #include <TimeClient.h>			  // https://github.com/arduino-libraries/NTPClient
 
 //== DOUBLE-RESET DETECTOR ==
-#include <DoubleResetDetector.h>
-#define DRD_TIMEOUT 2 // Second-reset must happen within 10 seconds of first reset to be considered a double-reset
+#include <DoubleResetDetector.h>	// https://github.com/datacute/DoubleResetDetector
+#define DRD_TIMEOUT 2 // Second-reset must happen within 2 seconds of first reset to be considered a double-reset
 #define DRD_ADDRESS 0 // RTC Memory Address for the DoubleResetDetector to use
 DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
 
