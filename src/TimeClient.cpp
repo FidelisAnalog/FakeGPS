@@ -1,21 +1,7 @@
-//=== WIFI MANAGER ===
-#include <ESP8266WiFi.h>
-#include <DNSServer.h>
-#include <ESP8266WebServer.h>
-#include <WiFiManager.h> //https://github.com/tzapu/WiFiManager
 #include <WiFiClient.h>
 #include <ESP8266HTTPClient.h>
-#include <ArduinoJson.h>
-#include "NTPCLient.h"
-
-char wifiManagerAPName[] = "FakeGPS";
-char wifiManagerAPPassword[] = "FakeGPS";
-
-//== DOUBLE-RESET DETECTOR ==
-#include <DoubleResetDetector.h>
-#define DRD_TIMEOUT 10 // Second-reset must happen within 10 seconds of first reset to be considered a double-reset
-#define DRD_ADDRESS 0 // RTC Memory Address for the DoubleResetDetector to use
-DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
+#include "NTPClient.h"
+#include <WiFiUdp.h>
 
 //=== NTP CLIENT ===
 #include "TimeClient.h"
@@ -52,78 +38,8 @@ TimeClient::TimeClient()
 
 void TimeClient::Setup(void)
 {
-	//-- WiFiManager --
-	//Local intialization. Once its business is done, there is no need to keep it around
-	WiFiManager wifiManager;
-	//wifiManager.resetSettings(); // Uncomment this to reset saved WiFi credentials.  Comment it back after you run once.
-	//wifiManager.setBreakAfterConfig(true); // Get out of WiFiManager even if we fail to connect after config.  So our Hail Mary pass could take care of it.
-	//wifiManager.setSaveConfigCallback(saveConfigCallback);
-
-	int connectionStatus = WL_IDLE_STATUS;
-
-	if (strlen(homeWifiName) > 0)
-	{
-		Serial.println("USING IN SKETCH CREDENTIALS:");
-		Serial.println(homeWifiName);
-		Serial.println(homeWifiPassword);
-		connectionStatus = WiFi.begin(homeWifiName, homeWifiPassword);
-		Serial.print("WiFi.begin returned ");
-		Serial.println(connectionStatus);
-	}
-	else
-	{
-
-		//-- Double-Reset --
-		if (drd.detectDoubleReset())
-		{
-			Serial.println("DOUBLE Reset Detected");
-			digitalWrite(LED_BUILTIN, LOW);
-			WiFi.disconnect();
-			connectionStatus = wifiManager.startConfigPortal(wifiManagerAPName, wifiManagerAPPassword);
-			Serial.print("startConfigPortal returned ");
-			Serial.println(connectionStatus);
-		}
-		else
-		{
-			Serial.println("SINGLE reset Detected");
-			digitalWrite(LED_BUILTIN, HIGH);
-			//fetches ssid and pass from eeprom and tries to connect
-			//if it does not connect it starts an access point with the specified name wifiManagerAPName
-			//and goes into a blocking loop awaiting configuration
-			connectionStatus = wifiManager.autoConnect(); //wifiManagerAPName, wifiManagerAPPassword);
-			Serial.print("autoConnect returned ");
-			Serial.println(connectionStatus);
-		}
-	}
-
-	while (WiFi.status() != WL_CONNECTED)
-	{
-		delay(500);
-		Serial.print(".");
-	}
-
-	// Hail Mary pass. If WiFiManager fail to connect user to home wifi, connect manually :-(
-	//  if (WiFi.status() != WL_CONNECTED) {
-	//     Serial.println("Hail Mary!");
-	//
-	//     ETS_UART_INTR_DISABLE();
-	//      wifi_station_disconnect();
-	//      ETS_UART_INTR_ENABLE();
-	//
-	//     WiFi.begin(homeWifiName, homeWifiPassword);
-	//     Serial.println("Connected?");
-	//  }
-
-	//-- Status --
-	Serial.print("WiFi.status() = ");
-	Serial.println(WiFi.status());
-
-	Serial.println("IP address: ");
-	Serial.println(WiFi.localIP());
-
-	drd.stop();
-	delay(3000);
 }
+
 
 void TimeClient::AskCurrentEpoch()
 {
@@ -131,7 +47,7 @@ void TimeClient::AskCurrentEpoch()
 	int offset = 0;
 
 	if (DEBUG)
-		Serial.println("Retrieving timezone offset");
+		Serial.print("Retrieving timezone offset: ");
 
 	http.begin(wifiClient, geo_location_api);
 	httpCode = http.GET();
@@ -168,8 +84,10 @@ void TimeClient::AskCurrentEpoch()
 			{
 				error_getTime = false;
 			}
-			if (DEBUG)
+			if (DEBUG) {
+				Serial.print("Server Epoch: ");
 				Serial.println(date_time);
+			}
 		}
 	}
 }
@@ -188,7 +106,7 @@ unsigned long TimeClient::GetCurrentTime()
 	if (timeNow > timeToAsk || !error_getTime)
 	{ // Is it time to ask server for current time?
 		if (DEBUG)
-			Serial.println(" Time to ask");
+			Serial.println("Time to ask");
 		timeToAsk = timeNow + askFrequency; // Don't ask again for a while
 		if (timeToRead == 0)
 		{ // If we have not asked...

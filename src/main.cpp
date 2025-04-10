@@ -1,21 +1,12 @@
 // Refactor v1
-
-#include <Arduino.h>
-
-extern "C"
-{
-#include "user_interface.h"  	  // Required for wifi_station_connect() to work
-}
-
-#include <ESP8266WiFi.h>          // https://github.com/esp8266/Arduino
-#include <WiFiUdp.h>
-#include <time.h>
-
-//needed for library
-#include <DNSServer.h>
-#include <ESP8266WebServer.h>
 #include <WiFiManager.h>          // https://github.com/tzapu/WiFiManager
 #include "TimeClient.h"			  // https://github.com/arduino-libraries/NTPClient
+
+//== DOUBLE-RESET DETECTOR ==
+#include <DoubleResetDetector.h>
+#define DRD_TIMEOUT 2 // Second-reset must happen within 10 seconds of first reset to be considered a double-reset
+#define DRD_ADDRESS 0 // RTC Memory Address for the DoubleResetDetector to use
+DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
 
 TimeClient TimeClient;
 WiFiManager wifiManager;
@@ -28,30 +19,51 @@ void setup()
 	pinMode(LED_BUILTIN, OUTPUT);   // Initialize the LED_BUILTIN pin as an output
 	digitalWrite(LED_BUILTIN, HIGH);
 	Serial.begin(115200);
+	Serial.print("\n\n\n");
+	Serial.println("FakeGPS Starting up...");
 
 	wifiManager.setTimeout(180);
 
-	//fetches ssid and pass and tries to connect
-	//if it does not connect it starts an access point with the specified name
-	//here  "NixieAP"
-	//and goes into a blocking loop awaiting configuration
-
-	if (!wifiManager.autoConnect("NixieAP"))
+	if (drd.detectDoubleReset())
 	{
-		Serial.println("failed to connect and hit timeout");
-		delay(3000);
-		//reset and try again, or maybe put it to deep sleep
-		ESP.reset();
-		delay(5000);
+		Serial.println("DOUBLE Reset Detected");
+		digitalWrite(LED_BUILTIN, LOW);
+		WiFi.disconnect();
+		wifiManager.startConfigPortal("FakeGPS");
+	}
+	else
+	{
+		Serial.println("SINGLE reset Detected");
+		digitalWrite(LED_BUILTIN, HIGH);
+		//fetches ssid and pass from eeprom and tries to connect
+		//if it does not connect it starts an access point with the specified name wifiManagerAPName
+		//and goes into a blocking loop awaiting configuration
+		if (!wifiManager.autoConnect("FakeGPS"))
+		{
+			Serial.println("Failed to connect and hit timeout");
+			delay(3000);
+			//reset and try again, or maybe put it to deep sleep
+			ESP.reset();
+			delay(5000);
+		}
 	}
 
-	//if you get here you have connected to the WiFi
-	Serial.println("connected...yeey :)");
+	drd.stop();
+
+	Serial.print("Waiting for WiFi");
+	while (WiFi.status() != WL_CONNECTED)
+	{
+		delay(500);
+		Serial.print(".");
+	}
+	Serial.print("... Connected\n");
+
+	Serial.print("STA IP address: ");
+	Serial.println(WiFi.localIP());
 
 	Serial1.begin(9600);
 
-	TimeClient.Setup();
-	askFrequency = 50;
+	
 }
 
 void loop()
@@ -62,10 +74,12 @@ void loop()
 	struct tm *tmtime;
 	unsigned long amicros, umicros = 0;
 
+	//askFrequency = 60 * 60 * 1000;
+
 	for (;;)
 	{
 		amicros = micros();
-		askFrequency = 60 * 60 * 1000;
+		//askFrequency = 60 * 60 * 1000;
 		while (((netEpoch = TimeClient.GetCurrentTime()) == locEpoch) || (!netEpoch))
 		{
 			delay(100);
