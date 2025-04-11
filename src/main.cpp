@@ -1,6 +1,7 @@
 // Refactor v1
 #include <WiFiManager.h>          // https://github.com/tzapu/WiFiManager
 #include <TimeClient.h>			  // https://github.com/arduino-libraries/NTPClient
+#include <ESP8266WiFi.h>
 
 //== DOUBLE-RESET DETECTOR ==
 #include <DoubleResetDetector.h>	// https://github.com/datacute/DoubleResetDetector
@@ -14,15 +15,22 @@ time_t locEpoch = 0, netEpoch = 0;
 
 int firstrun = 1;
 
+void configPortalStarted(WiFiManager *wm) {
+    digitalWrite(LED_BUILTIN, LOW); // Turn on the LED (active-low)
+}
+
 void setup()
 {
 	pinMode(LED_BUILTIN, OUTPUT);   // Initialize the LED_BUILTIN pin as an output
-	digitalWrite(LED_BUILTIN, HIGH);
+	digitalWrite(LED_BUILTIN, HIGH); // Turn off the LED initially (active-low)
 	Serial.begin(115200);
 	Serial.print("\n\n\n");
 	Serial.println("FakeGPS Starting up...");
 
 	wifiManager.setTimeout(180);
+
+	// Set the callback for when the config portal starts
+	wifiManager.setAPCallback(configPortalStarted);
 
 	if (drd.detectDoubleReset())
 	{
@@ -34,23 +42,19 @@ void setup()
 	else
 	{
 		Serial.println("SINGLE reset Detected");
-		digitalWrite(LED_BUILTIN, HIGH);
-		//fetches ssid and pass from eeprom and tries to connect
-		//if it does not connect it starts an access point with the specified name wifiManagerAPName
-		//and goes into a blocking loop awaiting configuration
+		// Attempt to auto-connect
 		if (!wifiManager.autoConnect("FakeGPS"))
 		{
 			Serial.println("Failed to connect and hit timeout");
 			delay(3000);
-			//reset and try again, or maybe put it to deep sleep
-			ESP.reset();
+			ESP.reset(); // Reset and try again
 			delay(5000);
 		}
 	}
 
 	drd.stop();
 
-	digitalWrite(LED_BUILTIN, HIGH);
+	digitalWrite(LED_BUILTIN, HIGH); // Turn off the LED after successful connection
 
 	Serial.print("Waiting for WiFi");
 	while (WiFi.status() != WL_CONNECTED)
@@ -60,8 +64,15 @@ void setup()
 	}
 	Serial.print("... Connected\n");
 
-	Serial.print("STA IP address: ");
-	Serial.println(WiFi.localIP());
+	Serial.println(String("WiFi BSSID: ") + WiFi.BSSIDstr() + 
+				   String(", Channel: ") + WiFi.channel() + 
+				   String(", RSSI: ") + WiFi.RSSI());
+
+	Serial.println(String("STA IP: ") + WiFi.localIP().toString() + 
+				   String(", Netmask: ") + WiFi.subnetMask().toString() + 
+				   String(", Gateway: ") + WiFi.gatewayIP().toString() + 
+				   String(", DNS1: ") + WiFi.dnsIP(0).toString() + 
+				   String(", DNS2: ") + WiFi.dnsIP(1).toString());
 
 	Serial1.begin(9600);
 }
