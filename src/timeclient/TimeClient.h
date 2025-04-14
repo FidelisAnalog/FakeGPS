@@ -36,9 +36,30 @@ public:
   void PrintTime();
   bool SaveConfig(void);
   bool LoadConfig(void);
-    
+
+  // Get the number of successive failed syncs
+  unsigned int GetFailedSyncCount() const { return failedSyncCount; }
+
+  // New setter for the timezone offset from the API
+  void setTimeZoneOffset(long offset);
+
+  // New setter for the millisecond offset (from CLOCK_OFFSET in config.h)
+  void setMsOffset(int msOffset);
+
 private:
   void AskCurrentEpoch();
   unsigned long ReadCurrentEpoch();
- };
+
+  unsigned int failedSyncCount = 0; // Tracks the number of successive failed syncs
+
+  // Store the dynamic offsets in TimeClient:
+  long _timeZoneOffset = 0; // in seconds
+  int _msOffset = 0;        // in milliseconds
+
+  // Cached time values
+  unsigned long lastEpoch = 0;
+  unsigned long lastEpochTimeStamp = 0;
+  unsigned long currentTime = 0;
+};
+
 #endif // TimeClient_H
